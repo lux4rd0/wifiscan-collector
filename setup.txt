@@ -1,0 +1,8 @@
+# provide iwlist
+sudo apt install wireless-tools
+
+# provide ifconfig
+ifconfig wlan0 up
+
+# bring up wlan0
+sudo ip link set wlan0 up
