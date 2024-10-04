@@ -1,6 +1,3 @@
-# provide iwlist
-sudo apt install wireless-tools
-
 # provide ifconfig
 ifconfig wlan0 up
 
