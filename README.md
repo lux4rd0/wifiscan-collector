@@ -20,38 +20,64 @@ You can configure the collector using the following environment variables:
 - **`WIFISCAN_COLLECTOR_SCAN_INTERVAL`**: Interval (in seconds) between Wi-Fi scans.
 - **`WIFISCAN_COLLECTOR_LOG_LEVEL`**: Logging level (e.g., `DEBUG`, `INFO`, `ERROR`).
 
-## How to Run
+## Requirements
 
-### Run the Collector with Docker
+- Docker
+- InfluxDB 2.x instance
 
-To simplify deployment, you can run the WiFiScan Collector using Docker.
+## Running WiFiScan Collector with Docker
 
-### Steps to run the collector:
+### Step 1: Create the `docker-compose.yaml`
 
-1. **Create a `docker-compose.yaml` file:**
+Here is the `docker-compose.yaml` file you can use to run WiFiScan Collector:
 
-   Example `compose.yaml`:
+```yaml
+name: wifiscan-collector
+services:
+  wifiscan-collector:
+    cap_add:
+      - NET_ADMIN
+    container_name: wifiscan-collector
+    environment:
+      TZ: America/Chicago
+      WIFISCAN_COLLECTOR_INFLUXDB_BUCKET: wifiscan
+      WIFISCAN_COLLECTOR_INFLUXDB_ORG: Lux4rd0
+      WIFISCAN_COLLECTOR_INFLUXDB_TOKEN: <token>
+      WIFISCAN_COLLECTOR_INFLUXDB_URL: http://influxdb:8086
+      WIFISCAN_COLLECTOR_LOG_LEVEL: INFO
+      WIFISCAN_COLLECTOR_MAX_RETRIES: "3"
+      WIFISCAN_COLLECTOR_RETRY_DELAY: "2"
+      WIFISCAN_COLLECTOR_SCAN_INTERVAL: "10"
+    image: lux4rd0/wifiscan-collector:latest
+    network_mode: host
+    restart: unless-stopped
+```
 
-   ```yaml
-   services:
-     wifiscan-collector:
-       image: wifiscan-collector:latest
-       container_name: wifiscan-collector
-       environment:
-         - WIFISCAN_COLLECTOR_INFLUXDB_URL=http://influxdb:8086
-         - WIFISCAN_COLLECTOR_INFLUXDB_TOKEN=your-token-here
-         - WIFISCAN_COLLECTOR_INFLUXDB_ORG=your-org
-         - WIFISCAN_COLLECTOR_INFLUXDB_BUCKET=wifiscan
-         - WIFISCAN_COLLECTOR_SCAN_INTERVAL=10
-         - WIFISCAN_COLLECTOR_LOG_LEVEL=DEBUG
-       network_mode: host  # To give the container access to the host Wi-Fi interfaces
-       restart: unless-stopped
-   ```
+### Step 2: Start WiFiScan Collector
 
-4. **Run the container using Docker Compose:**
+To start the WiFiScan Collector service using Docker Compose, follow these steps:
+
+1. Save the `compose.yaml` file in your project directory.
+2. Run the following command in the directory where the `compose.yaml` file is located:
 
    ```bash
-   docker compose up
+   docker-compose up -d
    ```
 
-This will start the `wifiscan-collector` container, which will scan nearby Wi-Fi networks using the `iw` command, parse the results, and send the data to InfluxDB at the specified interval.
+This command will start the WiFiScan Collector service in the background. It will continuously scan for Wi-Fi networks and send the data to your specified InfluxDB instance.
+
+### Step 3: Troubleshooting
+
+If you encounter issues such as the `wlan0` interface being down, you can troubleshoot with the following commands:
+
+1. **Check the status of your wireless interface:**
+
+   ```bash
+   ifconfig wlan0 up
+   ```
+
+2. **Bring up the interface manually:**
+
+   ```bash
+   sudo ip link set wlan0 up
+   ```
