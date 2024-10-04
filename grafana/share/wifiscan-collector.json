@@ -1,0 +1,459 @@
+{
+  "__inputs": [
+    {
+      "name": "InfluxDB - WifiScan Collector",
+      "label": "InfluxDB - WifiScan Collector",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "influxdb",
+      "pluginName": "InfluxDB"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "11.2.0"
+    },
+    {
+      "type": "datasource",
+      "id": "influxdb",
+      "name": "InfluxDB",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "default": false,
+        "type": "influxdb",
+        "uid": "${data_source_influxdb}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "dBm"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 24,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "interval": "$interval",
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "alias": "$tag_essid - $tag_mac - $tag_band ($tag_channel)",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source_influxdb}"
+          },
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "essid"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "mac"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "channel"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "band::tag"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "wifi_scan",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "signal_level"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "mean"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "essid::tag",
+              "operator": "=~",
+              "value": "/^$essid$/"
+            },
+            {
+              "condition": "AND",
+              "key": "band::tag",
+              "operator": "=~",
+              "value": "/^$band$/"
+            },
+            {
+              "condition": "AND",
+              "key": "channel::tag",
+              "operator": "=~",
+              "value": "/^$channel$/"
+            },
+            {
+              "condition": "AND",
+              "key": "encryption::tag",
+              "operator": "=~",
+              "value": "/^$encryption$/"
+            }
+          ]
+        }
+      ],
+      "title": "Wifi Signal Level (By ESSID)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": false,
+  "schemaVersion": 39,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Data Source InfluxDB",
+        "multi": false,
+        "name": "data_source_influxdb",
+        "options": [],
+        "query": "influxdb",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${data_source_influxdb}"
+        },
+        "definition": "SHOW TAG VALUES FROM \"wifi_scan\" WITH KEY = \"essid\"",
+        "hide": 0,
+        "includeAll": true,
+        "label": "ESSID",
+        "multi": true,
+        "name": "essid",
+        "options": [],
+        "query": {
+          "query": "SHOW TAG VALUES FROM \"wifi_scan\" WITH KEY = \"essid\"",
+          "refId": "InfluxVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 5,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${data_source_influxdb}"
+        },
+        "definition": "SHOW TAG VALUES FROM \"wifi_scan\" WITH KEY = \"band\" WHERE \"essid\" =~ /^$essid$/",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Band",
+        "multi": true,
+        "name": "band",
+        "options": [],
+        "query": {
+          "query": "SHOW TAG VALUES FROM \"wifi_scan\" WITH KEY = \"band\" WHERE \"essid\" =~ /^$essid$/",
+          "refId": "InfluxVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 3,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${data_source_influxdb}"
+        },
+        "definition": "SHOW TAG VALUES FROM \"wifi_scan\" WITH KEY = \"channel\" WHERE \"essid\" =~ /^$essid$/ and \"band\" =~ /^$band$/",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Channel",
+        "multi": true,
+        "name": "channel",
+        "options": [],
+        "query": {
+          "query": "SHOW TAG VALUES FROM \"wifi_scan\" WITH KEY = \"channel\" WHERE \"essid\" =~ /^$essid$/ and \"band\" =~ /^$band$/",
+          "refId": "InfluxVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 3,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${data_source_influxdb}"
+        },
+        "definition": "SHOW TAG VALUES FROM \"wifi_scan\" WITH KEY = \"mac\" WHERE \"essid\" =~ /^$essid$/ and \"channel\" =~ /^$channel$/",
+        "hide": 0,
+        "includeAll": true,
+        "label": "MAC",
+        "multi": true,
+        "name": "mac",
+        "options": [],
+        "query": {
+          "query": "SHOW TAG VALUES FROM \"wifi_scan\" WITH KEY = \"mac\" WHERE \"essid\" =~ /^$essid$/ and \"channel\" =~ /^$channel$/",
+          "refId": "InfluxVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 5,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${data_source_influxdb}"
+        },
+        "definition": "SHOW TAG VALUES FROM \"wifi_scan\" WITH KEY = \"encryption\"",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Encryption",
+        "multi": false,
+        "name": "encryption",
+        "options": [],
+        "query": {
+          "query": "SHOW TAG VALUES FROM \"wifi_scan\" WITH KEY = \"encryption\"",
+          "refId": "InfluxVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 5,
+        "type": "query"
+      },
+      {
+        "auto": true,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "current": {
+          "selected": false,
+          "text": "5m",
+          "value": "5m"
+        },
+        "hide": 0,
+        "label": "Interval",
+        "name": "interval",
+        "options": [
+          {
+            "selected": false,
+            "text": "auto",
+            "value": "$__auto_interval_interval"
+          },
+          {
+            "selected": false,
+            "text": "15s",
+            "value": "15s"
+          },
+          {
+            "selected": false,
+            "text": "30s",
+            "value": "30s"
+          },
+          {
+            "selected": false,
+            "text": "1m",
+            "value": "1m"
+          },
+          {
+            "selected": true,
+            "text": "5m",
+            "value": "5m"
+          },
+          {
+            "selected": false,
+            "text": "15m",
+            "value": "15m"
+          },
+          {
+            "selected": false,
+            "text": "1h",
+            "value": "1h"
+          },
+          {
+            "selected": false,
+            "text": "3h",
+            "value": "3h"
+          },
+          {
+            "selected": false,
+            "text": "6h",
+            "value": "6h"
+          },
+          {
+            "selected": false,
+            "text": "12h",
+            "value": "12h"
+          },
+          {
+            "selected": false,
+            "text": "1d",
+            "value": "1d"
+          }
+        ],
+        "query": "15s,30s,1m,5m,15m,1h,3h,6h,12h,1d",
+        "queryValue": "",
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "interval"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Wifi Scan",
+  "uid": "lux4rd0labs_wifiscan_01",
+  "version": 1,
+  "weekStart": ""
+}
