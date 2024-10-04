@@ -108,6 +108,9 @@ class WifiScan:
                     .field("signal_level", int(network.get("signal_level", "-100")))
                 )
 
+                # Log the point details at debug level before sending
+                logging.debug(f"Sending to InfluxDB: {point.to_line_protocol()}")
+
                 write_api.write(bucket=self.influxdb_bucket, record=point)
 
             logging.info(f"Successfully sent {len(networks)} records to InfluxDB")
