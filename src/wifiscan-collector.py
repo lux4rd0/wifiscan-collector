@@ -37,6 +37,9 @@ class WifiScan:
             # Start of a new BSS section
             if line.startswith("BSS"):
                 if current_network:
+                    # If there's no ESSID (hidden network), we explicitly set it to 'hidden'
+                    if "essid" not in current_network:
+                        current_network["essid"] = "hidden"
                     logging.debug(f"Parsed network: {current_network}")
                     networks.append(current_network)
                 current_network = {}
@@ -72,7 +75,10 @@ class WifiScan:
             elif "capability" in line and "Privacy" not in line:
                 current_network["encryption"] = "off"
 
+        # Ensure the last network is added
         if current_network:
+            if "essid" not in current_network:
+                current_network["essid"] = "hidden"
             logging.debug(f"Parsed network: {current_network}")
             networks.append(current_network)
 
@@ -97,20 +103,33 @@ class WifiScan:
             write_api = client.write_api(write_options=SYNCHRONOUS)
 
             for network in networks:
-                point = (
-                    Point("wifi_scan")
-                    .tag("mac", network.get("mac", "unknown"))
-                    .tag("essid", network.get("essid", "hidden"))
-                    .tag("frequency", network.get("frequency", "unknown"))
-                    .tag("band", network.get("band", "unknown"))
-                    .tag("channel", network.get("channel", "unknown"))
-                    .tag("encryption", network.get("encryption", "unknown"))
-                    .field("signal_level", int(network.get("signal_level", "-100")))
-                )
+                point = Point("wifi_scan").tag("mac", network["mac"])
+
+                # Only add valid ESSID (hidden SSID is handled before reaching this point)
+                if "essid" in network:
+                    point = point.tag("essid", network["essid"])
+
+                # Only add frequency, band, channel, encryption if they're known
+                if "frequency" in network:
+                    point = point.tag("frequency", network["frequency"])
+
+                if "band" in network:
+                    point = point.tag("band", network["band"])
+
+                if "channel" in network:
+                    point = point.tag("channel", network["channel"])
+
+                if "encryption" in network:
+                    point = point.tag("encryption", network["encryption"])
+
+                # Add the signal level if it's a valid integer
+                if "signal_level" in network:
+                    point = point.field("signal_level", int(network["signal_level"]))
 
                 # Log the point details at debug level before sending
                 logging.debug(f"Sending to InfluxDB: {point.to_line_protocol()}")
 
+                # Write the point to InfluxDB
                 write_api.write(bucket=self.influxdb_bucket, record=point)
 
             logging.info(f"Successfully sent {len(networks)} records to InfluxDB")
