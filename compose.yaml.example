@@ -1,0 +1,11 @@
+name: wifiscan-collector
+services:
+  wifiscan-collector:
+    cap_add:
+      - NET_ADMIN
+    container_name: wifiscan-collector
+    env_file:
+      - .env
+    image: lux4rd0/wifiscan-collector:latest
+    network_mode: host
+    restart: unless-stopped

@@ -1,1 +1,4 @@
-influxdb_client==1.46.0
+influxdb-client[async]>=1.46.0,<2.0.0
+aiofiles>=24.1.0
+pydantic>=2.10.0
+pydantic-settings>=2.6.0

@@ -1,208 +1,35 @@
-import subprocess
-import re
-import time
-import os
-import logging
-from influxdb_client import InfluxDBClient, Point
-from influxdb_client.client.write_api import SYNCHRONOUS
+#!/usr/bin/env python3
+"""WiFi Scanner Collector entry point.
 
-# Setup logging based on environment variable
-log_level = os.getenv("WIFISCAN_COLLECTOR_LOG_LEVEL", "INFO").upper()
-logging.basicConfig(level=getattr(logging, log_level, logging.INFO))
+This is the main entry point for the WiFi Scanner Collector application.
+It provides a simple command-line interface to start the scanning service.
 
+The application will:
+1. Load configuration from environment variables
+2. Discover and validate wireless interfaces
+3. Connect to InfluxDB
+4. Start continuous WiFi scanning
+5. Handle graceful shutdown on SIGTERM/SIGINT
 
-class WifiScan:
-    def __init__(self):
-        # InfluxDB connection details from environment variables
-        self.influxdb_url = os.getenv(
-            "WIFISCAN_COLLECTOR_INFLUXDB_URL", "http://localhost:8086"
-        )
-        self.influxdb_token = os.getenv("WIFISCAN_COLLECTOR_INFLUXDB_TOKEN", "")
-        self.influxdb_org = os.getenv("WIFISCAN_COLLECTOR_INFLUXDB_ORG", "")
-        self.influxdb_bucket = os.getenv(
-            "WIFISCAN_COLLECTOR_INFLUXDB_BUCKET", "wifiscan"
-        )
+Usage:
+    python src/wifiscan-collector.py
 
-        # Set scan interval from environment variable
-        self.scan_interval = int(os.getenv("WIFISCAN_COLLECTOR_SCAN_INTERVAL", 5))
-        
-        # Set wireless interface from environment variable
-        self.wireless_interface = os.getenv("WIFISCAN_COLLECTOR_WIRELESS_INTERFACE", "wlan0")
+    Or make it executable:
+    chmod +x src/wifiscan-collector.py
+    ./src/wifiscan-collector.py
 
-    def parse_iw_output(self, output):
-        """Parse the output from the 'iw' scan command."""
-        networks = []
-        current_network = {}
+Environment variables:
+    WIFISCAN_COLLECTOR_INFLUXDB_TOKEN: InfluxDB authentication token (required)
+    WIFISCAN_COLLECTOR_INFLUXDB_ORG: InfluxDB organization (required)
+    WIFISCAN_COLLECTOR_INFLUXDB_URL: InfluxDB URL (default: http://localhost:8086)
+    WIFISCAN_COLLECTOR_WIRELESS_INTERFACE: Interface name (default: auto-detect)
+    WIFISCAN_COLLECTOR_SCAN_INTERVAL: Scan interval in seconds (default: 5)
+    WIFISCAN_COLLECTOR_LOG_LEVEL: Logging level (default: INFO)
 
-        for line in output.splitlines():
-            line = line.strip()
+For complete configuration options, see the documentation.
+"""
 
-            # Start of a new BSS section
-            if line.startswith("BSS"):
-                if current_network:
-                    # If there's no ESSID (hidden network), we explicitly set it to 'hidden'
-                    if "essid" not in current_network:
-                        current_network["essid"] = "hidden"
-                    logging.debug(f"Parsed network: {current_network}")
-                    networks.append(current_network)
-                current_network = {}
-
-                mac_match = re.search(r"BSS ([0-9a-f:]+)", line)
-                if mac_match:
-                    current_network["mac"] = mac_match.group(1)
-
-            elif "freq:" in line:
-                freq_match = re.search(r"freq: (\d+)", line)
-                if freq_match:
-                    frequency = freq_match.group(1)
-                    current_network["frequency"] = frequency
-                    current_network["band"] = self.infer_band(float(frequency))
-
-            elif "signal:" in line:
-                signal_match = re.search(r"signal: (-?\d+)", line)
-                if signal_match:
-                    current_network["signal_level"] = signal_match.group(1)
-
-            elif "SSID:" in line:
-                ssid_match = re.search(r"SSID: (.+)", line)
-                if ssid_match:
-                    current_network["essid"] = ssid_match.group(1)
-
-            elif "DS Parameter set: channel" in line:
-                channel_match = re.search(r"channel (\d+)", line)
-                if channel_match:
-                    current_network["channel"] = channel_match.group(1)
-
-            elif "capability" in line and "Privacy" in line:
-                current_network["encryption"] = "on"
-            elif "capability" in line and "Privacy" not in line:
-                current_network["encryption"] = "off"
-
-        # Ensure the last network is added
-        if current_network:
-            if "essid" not in current_network:
-                current_network["essid"] = "hidden"
-            logging.debug(f"Parsed network: {current_network}")
-            networks.append(current_network)
-
-        return networks
-
-    def infer_band(self, frequency):
-        """Infer WiFi band based on frequency."""
-        if 2400 <= frequency < 2500:
-            return "2g"
-        elif 4900 <= frequency < 5900:
-            return "5g"
-        elif 5900 <= frequency < 7100:
-            return "6g"
-        else:
-            return "unknown"
-
-    def send_to_influxdb(self, networks):
-        try:
-            client = InfluxDBClient(
-                url=self.influxdb_url, token=self.influxdb_token, org=self.influxdb_org
-            )
-            write_api = client.write_api(write_options=SYNCHRONOUS)
-
-            for network in networks:
-                point = Point("wifi_scan").tag("mac", network["mac"])
-
-                # Only add valid ESSID (hidden SSID is handled before reaching this point)
-                if "essid" in network:
-                    point = point.tag("essid", network["essid"])
-
-                # Only add frequency, band, channel, encryption if they're known
-                if "frequency" in network:
-                    point = point.tag("frequency", network["frequency"])
-
-                if "band" in network:
-                    point = point.tag("band", network["band"])
-
-                if "channel" in network:
-                    point = point.tag("channel", network["channel"])
-
-                if "encryption" in network:
-                    point = point.tag("encryption", network["encryption"])
-
-                # Add the signal level if it's a valid integer
-                if "signal_level" in network:
-                    point = point.field("signal_level", int(network["signal_level"]))
-
-                # Log the point details at debug level before sending
-                logging.debug(f"Sending to InfluxDB: {point.to_line_protocol()}")
-
-                # Write the point to InfluxDB
-                write_api.write(bucket=self.influxdb_bucket, record=point)
-
-            logging.info(f"Successfully sent {len(networks)} records to InfluxDB")
-        except Exception as e:
-            logging.error(f"Error sending data to InfluxDB: {e}")
-        finally:
-            client.close()
-
-    def run_scan(self):
-        try:
-            start_time = time.time()
-
-            # Run the iw command and capture the output
-            result = subprocess.run(
-                ["iw", "dev", self.wireless_interface, "scan"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=True,
-                timeout=30,
-                encoding="utf-8"
-            )
-
-            output = result.stdout
-
-            # Measure how long the scan took
-            elapsed_time = time.time() - start_time
-            logging.info(f"Scan completed in {elapsed_time:.2f} seconds")
-
-            # Parse the iw output
-            return self.parse_iw_output(output), elapsed_time
-
-        except subprocess.CalledProcessError as e:
-            logging.error(f"iw scan failed with return code {e.returncode}: {e.stderr}")
-            return None, 0
-        except subprocess.TimeoutExpired:
-            logging.error("iw scan timed out after 30 seconds")
-            return None, 0
-        except Exception as e:
-            logging.error(f"Error running iw scan: {e}")
-            return None, 0
-
-    def start(self):
-        retries = 0
-        max_retries = 3
-
-        while True:
-            networks, elapsed_time = self.run_scan()
-
-            if networks:
-                retries = 0  # Reset retries after a successful scan
-                self.send_to_influxdb(networks)
-            else:
-                retries += 1
-                logging.error(f"Scan failed (attempt {retries})")
-                if retries >= max_retries:
-                    logging.error("Max retries reached, scan failed.")
-                    retries = 0
-
-            # Calculate how much time to sleep based on the scan time
-            sleep_time = max(0, self.scan_interval - elapsed_time)
-
-            if sleep_time > 0:
-                logging.info(f"Sleeping for {sleep_time:.2f} seconds")
-            else:
-                logging.warning("Scan took longer than the interval, skipping sleep")
-
-            time.sleep(sleep_time)
-
+from wifiscan_collector.main import run
 
 if __name__ == "__main__":
-    # Instantiate the scanner
-    scanner = WifiScan()
-    scanner.start()
+    run()

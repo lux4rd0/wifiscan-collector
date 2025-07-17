@@ -1,87 +1,79 @@
 # WiFiScan Collector
 
-The **WiFiScan Collector** is a Python-based tool that scans available Wi-Fi networks using the `iw` tool, parses the scan results, and sends structured data to an InfluxDB database for storage and analysis. This tool provides insights into nearby wireless networks, including signal strength, frequency band, channel, and other essential Wi-Fi parameters.
+A Python 3.13 async tool that scans WiFi networks using `iw` and stores data in InfluxDB. Supports modern WiFi 6/6E networks with comprehensive network analysis and production-ready reliability features.
 
 ## Features
 
-- **Wi-Fi Scanning with `iw`:** Collects data about nearby Wi-Fi networks such as SSID, MAC address, channel, signal strength, encryption type, and frequency band (2.4GHz, 5GHz, or 6GHz).
-- **Data Storage with InfluxDB:** Sends collected network data to an InfluxDB instance for monitoring, visualization, or further analysis.
-- **Configurable Environment:** Configurable through environment variables for setting scan intervals, logging levels, and InfluxDB connection details.
-- **Retry Logic:** Automatically retries scans in case of transient errors or missing network data.
+- **WiFi Scanning:** Collects SSID, signal strength, encryption, channel, band (2.4/5/6 GHz), and WiFi 6/6E capabilities
+- **InfluxDB Integration:** Async batch writing with circuit breaker and retry logic for reliability
+- **Auto Interface Detection:** Automatically finds and selects the best wireless interface
+- **Production Ready:** Built for long-running deployments with comprehensive error handling
 
-## Environment Variables
+## Quick Start
 
-You can configure the collector using the following environment variables:
-
-- **`WIFISCAN_COLLECTOR_INFLUXDB_URL`**: URL of the InfluxDB instance (e.g., `http://influxdb:8086`).
-- **`WIFISCAN_COLLECTOR_INFLUXDB_TOKEN`**: Authentication token for InfluxDB.
-- **`WIFISCAN_COLLECTOR_INFLUXDB_ORG`**: InfluxDB organization name.
-- **`WIFISCAN_COLLECTOR_INFLUXDB_BUCKET`**: InfluxDB bucket name to store Wi-Fi scan results.
-- **`WIFISCAN_COLLECTOR_SCAN_INTERVAL`**: Interval (in seconds) between Wi-Fi scans.
-- **`WIFISCAN_COLLECTOR_LOG_LEVEL`**: Logging level (e.g., `DEBUG`, `INFO`, `ERROR`).
-- **`WIFISCAN_COLLECTOR_WIRELESS_INTERFACE`**: Wireless network interface name (e.g., `wlan0`, `wlp3s0`). Defaults to `wlan0`.
-
-## Requirements
-
-- Docker
+### Requirements
+- Docker with `NET_ADMIN` capability
 - InfluxDB 2.x instance
+- Linux system with wireless interface
 
-## Running WiFiScan Collector with Docker
+### Configuration
+Set these environment variables:
+```bash
+WIFISCAN_COLLECTOR_INFLUXDB_TOKEN=your-token-here
+WIFISCAN_COLLECTOR_INFLUXDB_ORG=your-org
+WIFISCAN_COLLECTOR_INFLUXDB_URL=http://influxdb:8086  # optional
+```
 
-### Step 1: Create the `docker-compose.yaml`
+See [docs/configuration.md](docs/configuration.md) for all configuration options.
 
-Here is the `docker-compose.yaml` file you can use to run WiFiScan Collector:
+## Installation
 
+### Docker (Recommended)
+```bash
+# Create .env file with your settings
+cp .env.example .env
+
+# Run with Docker Compose
+docker-compose up -d
+```
+
+### Docker Compose Example
 ```yaml
-name: wifiscan-collector
 services:
   wifiscan-collector:
+    image: lux4rd0/wifiscan-collector:latest
     cap_add:
       - NET_ADMIN
-    container_name: wifiscan-collector
-    environment:
-      TZ: America/Chicago
-      WIFISCAN_COLLECTOR_INFLUXDB_BUCKET: wifiscan
-      WIFISCAN_COLLECTOR_INFLUXDB_ORG: Lux4rd0
-      WIFISCAN_COLLECTOR_INFLUXDB_TOKEN: <token>
-      WIFISCAN_COLLECTOR_INFLUXDB_URL: http://influxdb:8086
-      WIFISCAN_COLLECTOR_LOG_LEVEL: INFO
-      WIFISCAN_COLLECTOR_MAX_RETRIES: "3"
-      WIFISCAN_COLLECTOR_RETRY_DELAY: "2"
-      WIFISCAN_COLLECTOR_SCAN_INTERVAL: "10"
-      WIFISCAN_COLLECTOR_WIRELESS_INTERFACE: wlan0  # Change to your wireless interface
-    image: lux4rd0/wifiscan-collector:latest
     network_mode: host
+    env_file:
+      - .env
     restart: unless-stopped
 ```
 
-### Step 2: Start WiFiScan Collector
+### Manual Installation
+See [docs/development.md](docs/development.md) for Python installation instructions.
 
-To start the WiFiScan Collector service using Docker Compose, follow these steps:
+## Troubleshooting
 
-1. Save the `compose.yaml` file in your project directory.
-2. Run the following command in the directory where the `compose.yaml` file is located:
+**Common issues:**
+- **Permission denied**: Ensure container has `NET_ADMIN` capability
+- **Interface not found**: Use `ip link show` to verify interface name
+- **InfluxDB connection**: Check token, organization, and URL
 
-   ```bash
-   docker-compose up -d
-   ```
+**Debug mode:**
+```bash
+export WIFISCAN_COLLECTOR_LOG_LEVEL=DEBUG
+docker logs -f wifiscan-collector
+```
 
-This command will start the WiFiScan Collector service in the background. It will continuously scan for Wi-Fi networks and send the data to your specified InfluxDB instance.
+See [docs/troubleshooting.md](docs/troubleshooting.md) for comprehensive troubleshooting.
 
-### Step 3: Troubleshooting
+## Documentation
 
-If you encounter issues such as your wireless interface being down, you can troubleshoot with the following commands:
+- **[Configuration Guide](docs/configuration.md)** - Complete configuration reference and examples
+- **[Development Guide](docs/development.md)** - Setup, testing, and contribution guidelines
+- **[Troubleshooting Guide](docs/troubleshooting.md)** - Detailed problem-solving procedures
 
-1. **Check the status of your wireless interface:**
+## License
 
-   ```bash
-   ifconfig <interface_name> up
-   ```
-
-2. **Bring up the interface manually:**
-
-   ```bash
-   sudo ip link set <interface_name> up
-   ```
-
-Replace `<interface_name>` with your actual wireless interface name (e.g., `wlan0`, `wlp3s0`, etc.). You can find your interface name using `ip link show` or `iwconfig`.
+MIT License - see LICENSE file for details.
