@@ -1,5 +1,9 @@
 # WiFiScan Collector
 
+[![Python](https://img.shields.io/badge/python-3.13+-blue.svg)](https://python.org)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://docker.com)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 A Python 3.13 async tool that scans WiFi networks using `iw` and stores data in InfluxDB. Supports modern WiFi 6/6E networks with comprehensive network analysis and production-ready reliability features.
 
 ## Features
