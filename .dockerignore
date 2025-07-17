@@ -1,0 +1,66 @@
+# Git files
+.git
+.gitignore
+
+# Python files
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# Testing and linting
+.coverage
+.pytest_cache/
+.mypy_cache/
+.tox/
+.flake8
+.ruff_cache/
+htmlcov/
+*.cover
+.hypothesis/
+
+# Development files
+*.log
+*.swp
+*.swo
+*~
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# Project files
+compose.yaml
+compose.yaml.example
+.env.example
+README.md
+CLAUDE.md
+build.sh
+test_*.py
+tests/
+requirements-dev.txt
+pyproject.toml
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Documentation
+docs/
+*.md
+
+# Temporary files
+temp/
+tmp/
